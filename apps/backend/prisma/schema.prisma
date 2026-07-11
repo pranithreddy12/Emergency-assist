@@ -1,0 +1,423 @@
+// EmergencyAI — Prisma schema
+// Field-level PII/PHI marked "// @encrypted" is stored AES-256-GCM encrypted at the
+// application layer (see common/crypto). Enums keep clinical data structured.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Auth ───────────────────────────────
+
+enum UserRole {
+  USER
+  RESPONDER
+  HOSPITAL_STAFF
+  ADMIN
+}
+
+enum AuthProvider {
+  EMAIL
+  PHONE
+  GOOGLE
+  APPLE
+  GUEST
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String?      @unique
+  phone        String?      @unique
+  passwordHash String? // argon2; null for guest/social
+  role         UserRole     @default(USER)
+  provider     AuthProvider @default(EMAIL)
+  isGuest      Boolean      @default(false)
+  isVerified   Boolean      @default(false)
+  displayName  String?
+
+  medicalProfile MedicalProfile?
+  sessions       Session[]
+  incidents      Incident[]      @relation("IncidentReporter")
+  auditLogs      AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+// Refresh-token-backed sessions (rotating). Hash of the refresh token is stored.
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  userAgent        String?
+  ip               String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────── Medical Profile ────────────────────────
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+  UNKNOWN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+model MedicalProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bloodGroup     BloodGroup @default(UNKNOWN)
+  dateOfBirth    DateTime?
+  gender         Gender     @default(UNDISCLOSED)
+  weightKg       Float?
+  heightCm       Float?
+  isOrganDonor   Boolean    @default(false)
+  isPregnant     Boolean    @default(false)
+  insuranceInfo  String? // @encrypted JSON blob (provider, policy #)
+
+  // Structured clinical lists (each an array of strings)
+  allergies         String[] @default([])
+  medications       String[] @default([])
+  chronicConditions String[] @default([])
+  previousSurgeries String[] @default([])
+
+  // Short public QR token that resolves to a read-only emergency card.
+  qrToken String @unique @default(cuid())
+
+  emergencyContacts EmergencyContact[]
+  documents         MedicalDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmergencyContact {
+  id        String  @id @default(uuid())
+  profileId String
+  profile   MedicalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  name         String
+  phone        String
+  relationship String?
+  priority     Int     @default(1) // 1 = call first
+  notifyBySms  Boolean @default(true)
+  notifyByCall Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model MedicalDocument {
+  id        String @id @default(uuid())
+  profileId String
+  profile   MedicalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  label       String
+  storageKey  String // key in storage adapter (S3 or mock)
+  contentType String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  @@index([profileId])
+}
+
+// ─────────────────────────── Emergency / Triage ─────────────────────
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  DRAFT        // being assessed by triage
+  ACTIVE       // SOS raised
+  DISPATCHED   // ambulance / responder assigned
+  EN_ROUTE
+  AT_HOSPITAL
+  RESOLVED
+  CANCELLED
+}
+
+model Incident {
+  id         String         @id @default(uuid())
+  reporterId String
+  reporter   User           @relation("IncidentReporter", fields: [reporterId], references: [id])
+  status     IncidentStatus @default(DRAFT)
+
+  // Location captured at raise time
+  latitude  Float?
+  longitude Float?
+  address   String?
+
+  severity        Severity?
+  chiefComplaint  String?
+
+  // Public live-tracking capability token (shared with contacts via a link).
+  trackingToken     String?   @unique
+  trackingEnabledAt DateTime?
+
+  triageReport     TriageReport?
+  events           IncidentEvent[]
+  ambulanceRequest AmbulanceRequest?
+  prearrivals      HospitalPrearrival[]
+  notifications    NotificationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([status])
+}
+
+// Immutable structured output of the triage engine. NEVER a diagnosis.
+model TriageReport {
+  id         String   @id @default(uuid())
+  incidentId String   @unique
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  severity        Severity
+  confidence      Float // 0..1
+  chiefComplaint  String
+  isConscious     Boolean?
+  isBreathing     Boolean?
+  hasBleeding     Boolean?
+  patientAge      Int?
+  symptoms        String[] @default([])
+  recommendedActions String[] @default([]) // first-aid steps, not prescriptions
+  suggestedFacility  String? // e.g. "TRAUMA_CENTER"
+  disclaimer      String
+  engineVersion   String
+  provider        String // "mock" | "openai"
+  rawModel        Json? // full structured model payload for audit
+
+  createdAt DateTime @default(now())
+}
+
+model IncidentEvent {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  type       String // STATUS_CHANGE | NOTE | LOCATION_UPDATE | NOTIFICATION
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+// ─────────────────────────── Hospitals ──────────────────────────────
+
+// Facility capabilities used for routing (aligns with triage suggestedFacility).
+enum FacilityCapability {
+  EMERGENCY
+  TRAUMA_CENTER
+  CARDIAC
+  STROKE
+  BURN
+  PEDIATRIC
+  MATERNITY
+  POISON_CONTROL
+}
+
+model Hospital {
+  id           String               @id @default(uuid())
+  name         String
+  address      String
+  phone        String?
+  latitude     Float
+  longitude    Float
+  rating       Float                @default(0) // 0..5
+  isOpen24h    Boolean              @default(true)
+  hasEmergency Boolean              @default(true)
+  capabilities FacilityCapability[] @default([])
+  // Simple availability signal a hospital can update (e.g. free ER beds).
+  availableBeds Int?
+
+  ambulanceRequests AmbulanceRequest[] @relation("DestinationHospital")
+  prearrivals       HospitalPrearrival[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([latitude, longitude])
+}
+
+// ─────────────────────────── Ambulances ─────────────────────────────
+
+enum AmbulanceType {
+  BLS // Basic Life Support
+  ALS // Advanced Life Support
+}
+
+enum AmbulanceStatus {
+  AVAILABLE
+  DISPATCHED
+  EN_ROUTE
+  BUSY
+  OFFLINE
+}
+
+model Ambulance {
+  id            String          @id @default(uuid())
+  vehicleNumber String          @unique
+  driverName    String
+  driverPhone   String
+  type          AmbulanceType   @default(BLS)
+  status        AmbulanceStatus @default(AVAILABLE)
+  latitude      Float
+  longitude     Float
+
+  requests AmbulanceRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+enum AmbulanceRequestStatus {
+  REQUESTED
+  ASSIGNED
+  EN_ROUTE
+  ARRIVED
+  COMPLETED
+  CANCELLED
+}
+
+model AmbulanceRequest {
+  id     String @id @default(uuid())
+  userId String
+
+  // Optional link to the incident that triggered the request.
+  incidentId String?   @unique
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+
+  ambulanceId String?
+  ambulance   Ambulance? @relation(fields: [ambulanceId], references: [id], onDelete: SetNull)
+
+  status       AmbulanceRequestStatus @default(REQUESTED)
+  pickupLat    Float
+  pickupLng    Float
+  pickupAddress String?
+
+  destinationHospitalId String?
+  destinationHospital   Hospital? @relation("DestinationHospital", fields: [destinationHospitalId], references: [id], onDelete: SetNull)
+
+  etaSeconds  Int?
+  distanceKm  Float?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cancelledAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────── Hospital Pre-arrival ───────────────────────
+
+enum PrearrivalStatus {
+  SENT
+  ACKNOWLEDGED
+  DECLINED
+}
+
+// An immutable snapshot sent to a hospital before the patient arrives.
+model HospitalPrearrival {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+
+  status         PrearrivalStatus @default(SENT)
+  etaSeconds     Int?
+  // Denormalized snapshot of what was shared (severity, allergies, meds, etc.).
+  payload        Json
+  acknowledgedAt DateTime?
+  ackNote        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hospitalId])
+  @@index([incidentId])
+}
+
+// ───────────────────────── Notifications ────────────────────────────
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  WHATSAPP
+  EMAIL
+  CALL
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model NotificationLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  incidentId String?
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+
+  channel   NotificationChannel
+  recipient String
+  template  String
+  status    NotificationStatus  @default(QUEUED)
+  provider  String
+  error     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([incidentId])
+  @@index([channel])
+}
+
+// ──────────────────────────────── Audit ─────────────────────────────
+
+model AuditLog {
+  id       String  @id @default(uuid())
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action   String
+  resource String
+  meta     Json?
+  ip       String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}

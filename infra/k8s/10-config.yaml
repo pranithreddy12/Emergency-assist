@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: emergencyai
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  API_PREFIX: "api/v1"
+  REDIS_URL: "redis://redis:6379"
+  AI_PROVIDER: "mock"
+  MAPS_PROVIDER: "mock"
+  STORAGE_PROVIDER: "mock"
+  NOTIFY_PROVIDER: "mock"
+  SMS_PROVIDER: "mock"
+  VOICE_PROVIDER: "mock"
+---
+# Secrets are placeholders — replace with a sealed-secret / external-secret in
+# real clusters. Values shown are base64 of dev defaults; DO NOT ship as-is.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+  namespace: emergencyai
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://emergencyai:emergencyai@postgres:5432/emergencyai?schema=public"
+  JWT_ACCESS_SECRET: "change_me_access"
+  JWT_REFRESH_SECRET: "change_me_refresh"
+  # 32-byte base64 AES key — generate with: openssl rand -base64 32
+  FIELD_ENCRYPTION_KEY: "ZGV2X29ubHlfMzJfYnl0ZV9rZXlfZG9fbm90X3VzZSE="
+  POSTGRES_PASSWORD: "emergencyai"
