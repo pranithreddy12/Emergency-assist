@@ -9,6 +9,9 @@ export class RegisterDto {
   @ApiProperty({ example: 'S3curePass!', minLength: 8 })
   @IsString()
   @MinLength(8)
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, {
+    message: 'password must be at least 8 characters and include a letter and a number',
+  })
   password!: string;
 
   @ApiProperty({ required: false, example: 'Jane Doe' })

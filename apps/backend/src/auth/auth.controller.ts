@@ -1,5 +1,6 @@
 import { Body, Controller, Post, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, RefreshDto } from './dto/auth.dto';
@@ -15,7 +16,9 @@ export class AuthController {
     return { ip: req.ip, ua: req.headers['user-agent'] };
   }
 
+  // Tight per-IP limits on credential endpoints to blunt brute-force / abuse.
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   @ApiOperation({ summary: 'Register with email + password' })
   register(@Body() dto: RegisterDto, @Req() req: Request) {
@@ -23,6 +26,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email + password' })

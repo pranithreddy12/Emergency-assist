@@ -140,4 +140,34 @@ describe('EmergencyAI e2e', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(403);
   });
+
+  it('sets security headers (helmet)', async () => {
+    const res = await http.get('/api/v1/health').expect(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-dns-prefetch-control']).toBeDefined();
+  });
+
+  it('enforces the password policy on register', async () => {
+    await http
+      .post('/api/v1/auth/register')
+      .send({ email: `weak_${Date.now()}@test.com`, password: 'allletters' })
+      .expect(400);
+  });
+
+  it('rotates refresh tokens and detects reuse (revokes all sessions)', async () => {
+    // Fresh session with its own refresh token.
+    const guest = await http.post('/api/v1/auth/guest').expect(201);
+    const r1 = guest.body.refreshToken as string;
+
+    // First rotation works and yields a new token.
+    const rotated = await http.post('/api/v1/auth/refresh').send({ refreshToken: r1 }).expect(200);
+    const r2 = rotated.body.refreshToken as string;
+    expect(r2).not.toBe(r1);
+
+    // Replaying the OLD (now-revoked) token is treated as theft → 401.
+    await http.post('/api/v1/auth/refresh').send({ refreshToken: r1 }).expect(401);
+
+    // ...and the reuse response revoked the legitimate new token too.
+    await http.post('/api/v1/auth/refresh').send({ refreshToken: r2 }).expect(401);
+  });
 });

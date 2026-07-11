@@ -84,10 +84,24 @@ export class AuthService {
 
     const hash = this.hashToken(refreshToken);
     const session = await this.prisma.session.findFirst({
-      where: { userId: payload.sub, refreshTokenHash: hash, revokedAt: null },
+      where: { userId: payload.sub, refreshTokenHash: hash },
       include: { user: true },
     });
-    if (!session || session.expiresAt < new Date()) {
+    if (!session) throw new UnauthorizedException('Invalid refresh token');
+
+    // Reuse detection: a valid-signature token that maps to an ALREADY-revoked
+    // session means someone replayed a rotated (or logged-out) token — a strong
+    // theft signal. Revoke every live session for the user and refuse.
+    if (session.revokedAt) {
+      await this.prisma.session.updateMany({
+        where: { userId: session.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      this.logger.warn(`Refresh token reuse detected for user ${session.userId}; all sessions revoked`);
+      throw new UnauthorizedException('Refresh token reuse detected; all sessions revoked');
+    }
+
+    if (session.expiresAt < new Date()) {
       throw new UnauthorizedException('Session expired');
     }
 
