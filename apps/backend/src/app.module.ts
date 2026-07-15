@@ -21,6 +21,9 @@ import { TimelineModule } from './timeline/timeline.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
 import { VoiceModule } from './voice/voice.module';
+import { StorageModule } from './storage/storage.module';
+import { DocumentsModule } from './documents/documents.module';
+import { AiModule } from './ai/ai.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -31,6 +34,7 @@ import { HealthController } from './health.controller';
     CommonModule,
     MapsModule,
     NotificationsModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     MedicalProfileModule,
@@ -45,6 +49,8 @@ import { HealthController } from './health.controller';
     AnalyticsModule,
     AdminModule,
     VoiceModule,
+    DocumentsModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [

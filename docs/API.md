@@ -63,6 +63,16 @@ Roles: 🔒 = any authenticated user · 👮 = HOSPITAL_STAFF/ADMIN · 🛡️ =
 | POST | `/voice/speak` | 🔒 text-to-speech |
 | POST | `/voice/assist` | 🔒 voice → triage → spoken guidance |
 
+## AI (vision + translation)
+| POST | `/ai/analyze-image` | 🔒 photo → neutral observations → triage (never diagnoses) |
+| POST | `/ai/translate` | 🔒 translate text to another language |
+
+## Documents
+| POST | `/documents` | 🔒 upload a medical document (base64, ≤15 MB) |
+| GET | `/documents` | 🔒 list my documents |
+| GET | `/documents/raw/:id` | 🔒 download bytes |
+| DELETE | `/documents/:id` | 🔒 delete |
+
 ## Timeline
 | GET | `/timeline` | 🔒 unified medical timeline |
 | GET | `/timeline/summary` | 🔒 counts |

@@ -42,3 +42,8 @@ Thumbs.db
 # Coverage
 coverage/
 .nyc_output/
+
+# Local file storage (mock storage adapter)
+apps/backend/.uploads/
+apps/backend/.uploads-test/
+.uploads/
