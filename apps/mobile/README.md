@@ -20,6 +20,25 @@ lib/
   routing/        GoRouter with auth-aware redirect
 ```
 
+## Live location
+The hospital search, ambulance booking, and SOS flows use real GPS via
+`geolocator` (`lib/core/location/location_service.dart`), with a graceful
+fallback to a default location if permission is denied or GPS is off.
+
+Add the platform permissions after generating the native folders
+(`flutter create .` if `android/`/`ios/` don't exist yet):
+
+- **Android** — in `android/app/src/main/AndroidManifest.xml`:
+  ```xml
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  ```
+- **iOS** — in `ios/Runner/Info.plist`:
+  ```xml
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>EmergencyAI uses your location to find nearby hospitals and dispatch help.</string>
+  ```
+
 ## Run
 ```bash
 # 1. Start the backend first (see ../backend/README.md) — it runs with zero keys.

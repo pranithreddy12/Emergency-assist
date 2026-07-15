@@ -58,7 +58,8 @@ Goal: a bystander can authenticate (or guest), a medical profile exists, the AI 
 - [x] Medical Documents Upload — `storage` module (local-disk mock + S3 adapter w/ fallback) + `documents` module (upload/list/download/delete, ownership-checked, 15 MB cap). *Storage adapter unit-tested; module boots + routes mapped. DB e2e pending Docker.*
 - [x] AI Image Analysis — `ai/analyze-image`: photo → neutral non-diagnostic observations → triage. Mock + OpenAI vision (gpt-4o) w/ fallback. *Unit-tested (feeds triage, carries disclaimer).*
 - [x] AI Multi-language Translation — `ai/translate`: mock (passthrough) + OpenAI. *Unit-tested.*
-- [ ] Flutter: Location module (live GPS), shake/gesture SOS, social/biometric login — needs Flutter SDK (absent on host)
+- [x] Flutter Location module — `geolocator`-based `LocationService` (permission handling + fallback) wired into hospital search, ambulance booking, and SOS incident creation (replaces the demo coordinate with real GPS). *Authored — needs on-device `flutter run` to verify; permission setup documented in `apps/mobile/README.md`.*
+- [ ] Flutter: shake/gesture SOS, social/biometric login, and on-device compilation (`flutter analyze && flutter test`) — needs Flutter SDK (absent on host)
 
 ---
 

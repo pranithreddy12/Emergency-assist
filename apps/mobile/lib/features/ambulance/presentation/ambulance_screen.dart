@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/network/api_client.dart';
 import '../data/ambulance_repository.dart';
-
-// Demo pickup until the Location module provides live GPS.
-const _pickupLat = 37.7749;
-const _pickupLng = -122.4194;
 
 class AmbulanceScreen extends ConsumerStatefulWidget {
   final String? incidentId;
@@ -41,9 +38,10 @@ class _AmbulanceScreenState extends ConsumerState<AmbulanceScreen> {
       _error = null;
     });
     try {
+      final loc = await ref.read(locationServiceProvider).current();
       final req = await ref.read(ambulanceRepositoryProvider).book(
-            pickupLat: _pickupLat,
-            pickupLng: _pickupLng,
+            pickupLat: loc.latitude,
+            pickupLng: loc.longitude,
             pickupAddress: 'Current location',
             incidentId: widget.incidentId,
             destinationHospitalId: widget.destinationHospitalId,

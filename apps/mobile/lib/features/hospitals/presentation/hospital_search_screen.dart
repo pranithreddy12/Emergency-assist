@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/location/location_service.dart';
 import '../data/hospitals_repository.dart';
 import '../../ambulance/presentation/ambulance_screen.dart';
-
-// NOTE: live GPS is delivered by the Location module (a later phase). Until then
-// this screen uses a demo location; swap in geolocator when Location lands.
-const _demoLat = 37.7749;
-const _demoLng = -122.4194;
 
 const _capabilities = [
   null,
@@ -36,10 +32,11 @@ class _HospitalSearchScreenState extends ConsumerState<HospitalSearchScreen> {
     _future = _load();
   }
 
-  Future<List<Map<String, dynamic>>> _load() {
+  Future<List<Map<String, dynamic>>> _load() async {
+    final loc = await ref.read(locationServiceProvider).current();
     return ref.read(hospitalsRepositoryProvider).search(
-          latitude: _demoLat,
-          longitude: _demoLng,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
           capability: _capability,
           sort: _sort,
           openNow: _openNow,

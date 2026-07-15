@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../emergency/data/emergency_repository.dart';
 import '../domain/triage_models.dart';
@@ -57,7 +58,12 @@ class _TriageScreenState extends ConsumerState<TriageScreen> {
       hasBleeding: _bleeding,
     );
     try {
-      final incident = await ref.read(emergencyRepositoryProvider).raiseSos(input);
+      final loc = await ref.read(locationServiceProvider).current();
+      final incident = await ref.read(emergencyRepositoryProvider).raiseSos(
+            input,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          );
       final report = TriageResult.fromJson(
           incident['triageReport'] as Map<String, dynamic>);
       if (mounted) {
