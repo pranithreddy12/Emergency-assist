@@ -59,7 +59,7 @@ Goal: a bystander can authenticate (or guest), a medical profile exists, the AI 
 - [x] AI Image Analysis — `ai/analyze-image`: photo → neutral non-diagnostic observations → triage. Mock + OpenAI vision (gpt-4o) w/ fallback. *Unit-tested (feeds triage, carries disclaimer).*
 - [x] AI Multi-language Translation — `ai/translate`: mock (passthrough) + OpenAI. *Unit-tested.*
 - [x] Flutter Location module — `geolocator`-based `LocationService` (permission handling + fallback) wired into hospital search, ambulance booking, and SOS incident creation (replaces the demo coordinate with real GPS). *Authored — needs on-device `flutter run` to verify; permission setup documented in `apps/mobile/README.md`.*
-- [ ] Flutter: shake/gesture SOS, social/biometric login, and on-device compilation (`flutter analyze && flutter test`) — needs Flutter SDK (absent on host)
+- [ ] Flutter: shake/gesture SOS, social/biometric login, and on-device compilation (`flutter analyze && flutter test`) — needs Flutter SDK (absent on host). **See [`apps/mobile/BRINGUP.md`](apps/mobile/BRINGUP.md) for the full source→running-app checklist.**
 
 ---
 

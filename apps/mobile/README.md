@@ -55,4 +55,7 @@ flutter test
 ```
 
 > This host had no Flutter SDK installed, so this code was authored but not
-> compiled here. Run `flutter analyze` on a machine with Flutter to confirm.
+> compiled here. **To take it from source to a running app, follow the
+> step-by-step [BRINGUP.md](BRINGUP.md) checklist** (generate native folders,
+> permissions, `flutter analyze`, run against the backend, manual QA, and the
+> remaining native-SDK features).
