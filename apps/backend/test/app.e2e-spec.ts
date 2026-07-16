@@ -139,6 +139,39 @@ describe('EmergencyAI e2e', () => {
       .expect(403);
   });
 
+  it('AI translate returns the text and target language (mock)', async () => {
+    const res = await http
+      .post('/api/v1/ai/translate')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ text: 'Apply firm pressure to the wound.', targetLanguage: 'French' })
+      .expect(201);
+    expect(res.body.targetLanguage).toBe('French');
+    expect(res.body.translatedText).toContain('firm pressure');
+  });
+
+  it('AI analyze-image derives observations and runs triage without diagnosing', async () => {
+    const scene = Buffer.from('person with severe chest pain and sweating').toString('base64');
+    const res = await http
+      .post('/api/v1/ai/analyze-image')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ imageBase64: scene })
+      .expect(201);
+    expect(res.body.triage.severity).toBe('CRITICAL');
+    expect(res.body.vision.disclaimer).toMatch(/not a diagnosis/i);
+  });
+
+  it('voice assist transcribes, triages, and returns a spoken summary', async () => {
+    const audio = Buffer.from('he is not breathing').toString('base64');
+    const res = await http
+      .post('/api/v1/voice/assist')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ audioBase64: audio })
+      .expect(201);
+    expect(res.body.triage.severity).toBe('CRITICAL');
+    expect(res.body.spokenSummary).toMatch(/not a diagnosis/i);
+    expect(res.body.audio.audioBase64.length).toBeGreaterThan(0);
+  });
+
   it('sets security headers (helmet)', async () => {
     const res = await http.get('/api/v1/health').expect(200);
     expect(res.headers['x-content-type-options']).toBe('nosniff');
