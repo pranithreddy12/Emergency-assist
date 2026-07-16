@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { AuthProvider, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
@@ -124,12 +124,15 @@ export class AuthService {
 
   private async issueSession(user: User, ctx: { ip?: string; ua?: string }): Promise<TokenPair> {
     const base = { sub: user.id, role: user.role, isGuest: user.isGuest };
+    // A unique jti per token guarantees distinct tokens even when two are issued
+    // in the same second (JWT `iat` is second-resolution). Without it, a rotation
+    // could mint a byte-identical refresh token and break reuse detection.
     const accessToken = await this.jwt.signAsync(
-      { ...base, type: 'access' },
+      { ...base, type: 'access', jti: randomUUID() },
       { secret: process.env.JWT_ACCESS_SECRET, expiresIn: this.accessTtl },
     );
     const refreshToken = await this.jwt.signAsync(
-      { ...base, type: 'refresh' },
+      { ...base, type: 'refresh', jti: randomUUID() },
       { secret: process.env.JWT_REFRESH_SECRET, expiresIn: this.refreshTtl },
     );
 

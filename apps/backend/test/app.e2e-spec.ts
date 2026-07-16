@@ -1,7 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app-config';
 
 /**
  * Full-stack e2e: boots the real Nest app (Prisma + all modules) and drives an
@@ -17,10 +18,7 @@ describe('EmergencyAI e2e', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
-    );
+    configureApp(app); // exact same middleware as production
     await app.init();
     http = request(app.getHttpServer());
   });
@@ -152,6 +150,39 @@ describe('EmergencyAI e2e', () => {
       .post('/api/v1/auth/register')
       .send({ email: `weak_${Date.now()}@test.com`, password: 'allletters' })
       .expect(400);
+  });
+
+  it('uploads, lists, downloads and deletes a medical document', async () => {
+    const contents = 'PATIENT RECORD: blood type O-';
+    const upload = await http
+      .post('/api/v1/documents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        label: 'Test record',
+        contentType: 'text/plain',
+        data: Buffer.from(contents).toString('base64'),
+      })
+      .expect(201);
+    expect(upload.body.id).toBeDefined();
+    expect(upload.body.sizeBytes).toBe(contents.length);
+    const docId = upload.body.id as string;
+
+    const list = await http
+      .get('/api/v1/documents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(list.body.some((d: { id: string }) => d.id === docId)).toBe(true);
+
+    const raw = await http
+      .get(`/api/v1/documents/raw/${docId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(raw.text).toBe(contents);
+
+    await http
+      .delete(`/api/v1/documents/${docId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
   });
 
   it('rotates refresh tokens and detects reuse (revokes all sessions)', async () => {
