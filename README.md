@@ -22,7 +22,9 @@ response.
 | `infra`         | Docker, Kubernetes manifests, CI/CD                            |
 | `docs`          | Architecture & module documentation                            |
 
-Docs: [ROADMAP.md](ROADMAP.md) · [Architecture](docs/ARCHITECTURE.md) · [API reference](docs/API.md) · [Infra/Deploy](infra/README.md)
+**Docs:** [docs index](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Data model](docs/DATA_MODEL.md) · [Safety](docs/SAFETY.md) · [Security](SECURITY.md) · [Infra/Deploy](infra/README.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+
+**Components:** [backend](apps/backend/README.md) · [admin portal](apps/admin/README.md) · [mobile](apps/mobile/README.md) ([bring-up](apps/mobile/BRINGUP.md)) · [SDK](packages/sdk/README.md)
 
 ## Quick start (backend)
 
