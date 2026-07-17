@@ -11,7 +11,9 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: emergencyai-backend:latest
+          # CI overwrites the tag via `kubectl set image` on each deploy.
+          image: ghcr.io/pranithreddy12/emergencyai-backend:latest
+          imagePullPolicy: IfNotPresent
           command: ["npx", "prisma", "migrate", "deploy"]
           envFrom:
             - secretRef: { name: backend-secrets }
@@ -32,7 +34,9 @@ spec:
     spec:
       containers:
         - name: backend
-          image: emergencyai-backend:latest
+          # CI overwrites the tag via `kubectl set image` on each deploy.
+          image: ghcr.io/pranithreddy12/emergencyai-backend:latest
+          imagePullPolicy: IfNotPresent
           # The image CMD also runs migrate; for multi-replica prefer the Job
           # above and set this to just the app:
           command: ["node", "dist/main.js"]

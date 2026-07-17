@@ -71,11 +71,12 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  images:
-    name: Build container images
+  # PRs: build images only (proves the Dockerfiles still work, pushes nothing).
+  images-pr:
+    name: Build container images (PR)
     runs-on: ubuntu-latest
     needs: [backend, sdk, admin]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -92,3 +93,120 @@ jobs:
           file: apps/admin/Dockerfile
           push: false
           tags: emergencyai-admin:${{ github.sha }}
+
+  # main: build AND push to GitHub Container Registry (ghcr.io).
+  # Uses the built-in GITHUB_TOKEN — no external registry account needed.
+  images:
+    name: Build & push container images
+    runs-on: ubuntu-latest
+    needs: [backend, sdk, admin]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend-image: ${{ steps.meta.outputs.backend }}
+      admin-image: ${{ steps.meta.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Image names must be lowercase for the registry.
+      - name: Compute image names
+        id: meta
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "backend=ghcr.io/$OWNER/emergencyai-backend" >> "$GITHUB_OUTPUT"
+          echo "admin=ghcr.io/$OWNER/emergencyai-admin" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.backend }}:${{ github.sha }}
+            ${{ steps.meta.outputs.backend }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/admin/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.admin }}:${{ github.sha }}
+            ${{ steps.meta.outputs.admin }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploys only when a KUBE_CONFIG secret is present; otherwise skips cleanly
+  # so CI stays green for anyone without a cluster.
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: [images]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect cluster credentials
+        id: kube
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -n "$KUBE_CONFIG" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No cluster configured — skipping
+        if: steps.kube.outputs.configured == 'false'
+        run: |
+          echo "::notice title=Deploy skipped::No KUBE_CONFIG secret set. Add a base64-encoded kubeconfig in Settings → Secrets → Actions to enable deploys. Images were still pushed to ghcr.io."
+
+      - name: Configure kubectl
+        if: steps.kube.outputs.configured == 'true'
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl version --client
+
+      - name: Apply manifests
+        if: steps.kube.outputs.configured == 'true'
+        run: |
+          # NOTE: infra/k8s/ contains no Secret — cluster secrets are applied
+          # out-of-band (see infra/k8s-secrets.example.yaml) so this can never
+          # clobber real credentials.
+          kubectl apply -f infra/k8s/
+
+      - name: Roll out the new images
+        if: steps.kube.outputs.configured == 'true'
+        run: |
+          kubectl -n emergencyai set image deployment/backend \
+            backend=${{ needs.images.outputs.backend-image }}:${{ github.sha }}
+          kubectl -n emergencyai set image deployment/admin \
+            admin=${{ needs.images.outputs.admin-image }}:${{ github.sha }}
+          kubectl -n emergencyai rollout status deployment/backend --timeout=180s
+          kubectl -n emergencyai rollout status deployment/admin --timeout=120s
+
+      - name: Rollback on failed rollout
+        if: failure() && steps.kube.outputs.configured == 'true'
+        run: |
+          echo "::error title=Deploy failed::Rolling back to the previous revision."
+          kubectl -n emergencyai rollout undo deployment/backend || true
+          kubectl -n emergencyai rollout undo deployment/admin || true
