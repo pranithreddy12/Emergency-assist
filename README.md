@@ -22,7 +22,10 @@ response.
 | `infra`         | Docker, Kubernetes manifests, CI/CD                            |
 | `docs`          | Architecture & module documentation                            |
 
-**Docs:** [docs index](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Data model](docs/DATA_MODEL.md) · [Safety](docs/SAFETY.md) · [Security](SECURITY.md) · [Infra/Deploy](infra/README.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+> **▶ Just want to run it?** See **[docs/SETUP_AND_RUN.md](docs/SETUP_AND_RUN.md)** —
+> or on Windows just run **`start.bat`**.
+
+**Docs:** [docs index](docs/README.md) · [Setup & Run](docs/SETUP_AND_RUN.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Data model](docs/DATA_MODEL.md) · [Safety](docs/SAFETY.md) · [Security](SECURITY.md) · [Infra/Deploy](infra/README.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 **Components:** [backend](apps/backend/README.md) · [admin portal](apps/admin/README.md) · [mobile](apps/mobile/README.md) ([bring-up](apps/mobile/BRINGUP.md)) · [SDK](packages/sdk/README.md)
 

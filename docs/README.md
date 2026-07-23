@@ -2,6 +2,7 @@
 
 | Doc | What it covers |
 |-----|----------------|
+| [SETUP_AND_RUN.md](SETUP_AND_RUN.md) | **Start here** — prerequisites, `start.bat`, URLs, a guided test drive of every flow, troubleshooting |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram, backend module map, triage flow, security overview |
 | [API.md](API.md) | Full REST/WebSocket endpoint reference with auth roles |
 | [DATA_MODEL.md](DATA_MODEL.md) | ER diagram, entities, and the incident state machine |
