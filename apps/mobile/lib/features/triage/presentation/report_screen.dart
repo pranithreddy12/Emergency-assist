@@ -63,7 +63,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
-                  colors: [sevColor, sevColor.withOpacity(0.75)],
+                  colors: [sevColor, sevColor.withValues(alpha: 0.75)],
                 ),
               ),
               child: Row(
@@ -114,7 +114,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: scheme.errorContainer.withOpacity(0.5),
+                color: scheme.errorContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -152,7 +152,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: scheme.secondaryContainer.withOpacity(0.5),
+                    color: scheme.secondaryContainer.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(

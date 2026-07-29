@@ -80,12 +80,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       height: 240,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [AppTheme.emergencyRed, const Color(0xFFB71C1C)],
+                        gradient: const RadialGradient(
+                          colors: [AppTheme.emergencyRed, Color(0xFFB71C1C)],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.emergencyRed.withOpacity(0.35 + t * 0.25),
+                            color: AppTheme.emergencyRed.withValues(alpha: 0.35 + t * 0.25),
                             blurRadius: 30 + t * 30,
                             spreadRadius: 4 + t * 12,
                           ),

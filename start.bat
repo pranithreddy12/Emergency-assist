@@ -35,7 +35,7 @@ if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
 )
 set /a _tries=0
 :wait_docker
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul
 docker ps >nul 2>&1
 if not errorlevel 1 goto docker_ok
 set /a _tries+=1
@@ -72,7 +72,7 @@ set /a _pg=0
 :wait_pg
 docker exec emergencyai-postgres pg_isready -U emergencyai >nul 2>&1
 if not errorlevel 1 goto pg_ok
-timeout /t 2 /nobreak >nul
+ping -n 3 127.0.0.1 >nul
 set /a _pg+=1
 if !_pg! lss 30 goto wait_pg
 echo [ERROR] PostgreSQL did not become ready in time.
@@ -119,9 +119,9 @@ REM 6. Launch servers (each in its own window)
 REM ---------------------------------------------------------------
 echo [6/6] Launching servers...
 start "EmergencyAI API" cmd /k "cd /d "%~dp0apps\backend" && npm run start:dev"
-timeout /t 8 /nobreak >nul
+ping -n 9 127.0.0.1 >nul
 start "EmergencyAI Admin" cmd /k "cd /d "%~dp0apps\admin" && npm run dev"
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul
 
 echo.
 echo ============================================================

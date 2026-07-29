@@ -114,7 +114,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _bloodGroup,
+          initialValue: _bloodGroup,
           decoration: const InputDecoration(labelText: 'Blood group'),
           items: _bloodGroups
               .map((b) => DropdownMenuItem(value: b, child: Text(b.replaceAll('_', ' '))))

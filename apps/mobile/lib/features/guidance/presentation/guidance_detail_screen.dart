@@ -33,7 +33,7 @@ class GuidanceDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: scheme.errorContainer.withOpacity(0.5),
+                  color: scheme.errorContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(

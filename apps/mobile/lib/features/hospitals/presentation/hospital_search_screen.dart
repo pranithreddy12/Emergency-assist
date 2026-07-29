@@ -152,7 +152,7 @@ class _HospitalSearchScreenState extends ConsumerState<HospitalSearchScreen> {
                   child: Text(h['name'] as String,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
-                Icon(Icons.star, color: Colors.amber, size: 18),
+                const Icon(Icons.star, color: Colors.amber, size: 18),
                 Text(' ${(h['rating'] as num).toStringAsFixed(1)}'),
               ],
             ),
