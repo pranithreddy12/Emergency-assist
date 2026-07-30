@@ -77,6 +77,16 @@ const AMBULANCES = [
   { vehicleNumber: 'AMB-104', driverName: 'Aisha Khan', driverPhone: '+14155550144', type: AmbulanceType.ALS, latitude: 37.7720, longitude: -122.4500 },
 ];
 
+// Public-access AEDs near the demo coords (downtown SF).
+const AEDS = [
+  { name: 'Union Square — Macy’s entrance', address: '170 O’Farrell St', access: 'Ground floor lobby, mall hours', latitude: 37.7869, longitude: -122.4074 },
+  { name: 'Powell St BART station', address: '899 Market St', access: 'Station agent booth, 24/7', latitude: 37.7844, longitude: -122.4079 },
+  { name: 'Westfield Centre', address: '865 Market St', access: 'Level 1 concierge desk', latitude: 37.7841, longitude: -122.4070 },
+  { name: 'Hilton Union Square', address: '333 O’Farrell St', access: 'Front desk, 24/7', latitude: 37.7859, longitude: -122.4103 },
+  { name: 'YMCA Embarcadero', address: '169 Steuart St', access: 'Reception, staffed hours', latitude: 37.7929, longitude: -122.3931 },
+  { name: 'Ferry Building', address: '1 Ferry Building', access: 'Security office, business hours', latitude: 37.7955, longitude: -122.3937 },
+];
+
 async function main() {
   for (const h of HOSPITALS) {
     const existing = await prisma.hospital.findFirst({ where: { name: h.name } });
@@ -93,10 +103,14 @@ async function main() {
       create: { ...a, status: AmbulanceStatus.AVAILABLE },
     });
   }
+  if ((await prisma.aed.count()) === 0) {
+    await prisma.aed.createMany({ data: AEDS });
+  }
   const hc = await prisma.hospital.count();
   const ac = await prisma.ambulance.count();
+  const dc = await prisma.aed.count();
   // eslint-disable-next-line no-console
-  console.log(`Seeded: ${hc} hospitals, ${ac} ambulances`);
+  console.log(`Seeded: ${hc} hospitals, ${ac} ambulances, ${dc} AEDs`);
 }
 
 main()

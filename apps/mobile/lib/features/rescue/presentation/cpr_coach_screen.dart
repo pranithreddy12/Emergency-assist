@@ -9,6 +9,7 @@ import '../../../core/voice/tts_service.dart';
 import '../data/rescue_service.dart';
 import '../domain/protocol.dart';
 import 'widgets/call_help_bar.dart';
+import 'widgets/aed_hint.dart';
 
 /// The hero. Full-screen, hands-free CPR coaching: a giant ring that pumps at
 /// the correct 110 bpm cadence with an audible click and a spoken intro, a live
@@ -112,6 +113,9 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
                 style: TextStyle(color: Rescue.text, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
             const Text('center of the chest • 110 / min',
                 style: TextStyle(color: Rescue.muted, fontSize: 14)),
+
+            const SizedBox(height: 12),
+            const AedHint(),
 
             const Spacer(),
 

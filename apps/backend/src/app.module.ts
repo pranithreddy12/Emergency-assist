@@ -24,6 +24,7 @@ import { VoiceModule } from './voice/voice.module';
 import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AiModule } from './ai/ai.module';
+import { AedModule } from './aed/aed.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -51,6 +52,7 @@ import { HealthController } from './health.controller';
     VoiceModule,
     DocumentsModule,
     AiModule,
+    AedModule,
   ],
   controllers: [HealthController],
   providers: [

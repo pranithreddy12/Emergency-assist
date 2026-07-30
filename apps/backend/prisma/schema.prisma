@@ -421,3 +421,18 @@ model AuditLog {
   @@index([userId])
   @@index([action])
 }
+
+// ───────────────────────────────── AED ──────────────────────────────
+// Public-access defibrillator registry. Shown to a bystander during CPR —
+// getting an AED to the scene fast is one of the biggest survival levers.
+model Aed {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  access    String?  // e.g. "Lobby, 24/7" — how to get to it
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+
+  @@index([latitude, longitude])
+}
