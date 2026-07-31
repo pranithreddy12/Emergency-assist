@@ -19,6 +19,8 @@ const FILTERS: Record<string, string> = {
 
 export type PlaceType = keyof typeof FILTERS;
 
+// Public instance is rate-limited and 504s on big area queries under load.
+// Point OVERPASS_URL at a self-hosted mirror in production.
 const OVERPASS = process.env.OVERPASS_URL ?? 'https://overpass-api.de/api/interpreter';
 const logger = new Logger('Overpass');
 
@@ -39,12 +41,13 @@ export async function nearbyPlaces(
   const filter = FILTERS[type];
   if (!filter) return [];
   const q =
-    `[out:json][timeout:20];(${filter}(around:${radiusM},${origin.latitude},${origin.longitude}););out center ${Math.min(limit * 4, 60)};`;
+    `[out:json][timeout:25];(${filter}(around:${radiusM},${origin.latitude},${origin.longitude}););out tags center ${Math.min(limit * 4, 60)};`;
   try {
-    // GET with a descriptive User-Agent — the public instance returns 406 to
-    // anonymous POSTs. Overpass usage policy requires an identifying UA.
+    // GET with a descriptive User-Agent — the public instance 406s anonymous
+    // POSTs. Abort after 22s so a slow/hung Overpass never blocks the caller.
     const res = await fetch(`${OVERPASS}?data=${encodeURIComponent(q)}`, {
       headers: { 'User-Agent': 'EmergencyAI/1.0 (bystander first-aid app)', Accept: 'application/json' },
+      signal: AbortSignal.timeout(22_000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = (await res.json()) as { elements?: OsmElement[] };

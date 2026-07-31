@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/location/location_service.dart';
 import '../data/hospitals_repository.dart';
-import '../../ambulance/presentation/ambulance_screen.dart';
 
-const _capabilities = [
-  null,
-  'EMERGENCY',
-  'TRAUMA_CENTER',
-  'CARDIAC',
-  'STROKE',
-  'BURN',
-  'PEDIATRIC',
-];
-
+/// Real nearby hospitals around the caller (live from OpenStreetMap).
 class HospitalSearchScreen extends ConsumerStatefulWidget {
   const HospitalSearchScreen({super.key});
   @override
@@ -21,174 +12,92 @@ class HospitalSearchScreen extends ConsumerStatefulWidget {
 }
 
 class _HospitalSearchScreenState extends ConsumerState<HospitalSearchScreen> {
-  String? _capability;
-  String _sort = 'distance';
-  bool _openNow = false;
-  late Future<List<Map<String, dynamic>>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
+  late Future<List<Map<String, dynamic>>> _future = _load();
 
   Future<List<Map<String, dynamic>>> _load() async {
     final loc = await ref.read(locationServiceProvider).current();
-    return ref.read(hospitalsRepositoryProvider).search(
+    return ref.read(hospitalsRepositoryProvider).nearby(
           latitude: loc.latitude,
           longitude: loc.longitude,
-          capability: _capability,
-          sort: _sort,
-          openNow: _openNow,
         );
   }
-
-  void _refresh() => setState(() => _future = _load());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nearby hospitals')),
-      body: Column(
-        children: [
-          _filters(),
-          const Divider(height: 1),
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _future,
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snap.hasError) {
-                  return Center(child: Text('Search failed.\n${snap.error}', textAlign: TextAlign.center));
-                }
-                final list = snap.data ?? [];
-                if (list.isEmpty) {
-                  return const Center(child: Text('No hospitals match these filters.'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: list.length,
-                  itemBuilder: (context, i) => _hospitalCard(list[i]),
-                );
-              },
-            ),
+      appBar: AppBar(
+        title: const Text('Nearby hospitals'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() => _future = _load()),
           ),
         ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(child: Text('Could not load hospitals.\n${snap.error}', textAlign: TextAlign.center));
+          }
+          final list = snap.data ?? [];
+          if (list.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('No hospitals found nearby right now. Call your local emergency number.',
+                    textAlign: TextAlign.center),
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: list.length,
+            itemBuilder: (context, i) => _card(list[i]),
+          );
+        },
       ),
     );
   }
 
-  Widget _filters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _capabilities.map((c) {
-                final selected = _capability == c;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(c == null ? 'All' : c.replaceAll('_', ' ')),
-                    selected: selected,
-                    onSelected: (_) {
-                      setState(() => _capability = c);
-                      _refresh();
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          Row(
-            children: [
-              DropdownButton<String>(
-                value: _sort,
-                items: const [
-                  DropdownMenuItem(value: 'distance', child: Text('Distance')),
-                  DropdownMenuItem(value: 'travelTime', child: Text('Travel time')),
-                  DropdownMenuItem(value: 'rating', child: Text('Rating')),
-                ],
-                onChanged: (v) {
-                  setState(() => _sort = v ?? 'distance');
-                  _refresh();
-                },
-              ),
-              const Spacer(),
-              const Text('Open now'),
-              Switch(
-                value: _openNow,
-                onChanged: (v) {
-                  setState(() => _openNow = v);
-                  _refresh();
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _hospitalCard(Map<String, dynamic> h) {
+  Widget _card(Map<String, dynamic> h) {
     final scheme = Theme.of(context).colorScheme;
     final km = (h['distanceKm'] as num).toStringAsFixed(1);
-    final mins = ((h['travelTimeSeconds'] as num) / 60).round();
-    final caps = (h['capabilities'] as List).cast<String>();
+    final address = h['address'] as String?;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(h['name'] as String,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(h['name'] as String? ?? 'Hospital',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-                const Icon(Icons.star, color: Colors.amber, size: 18),
-                Text(' ${(h['rating'] as num).toStringAsFixed(1)}'),
-              ],
+                  if (address != null && address.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(address, style: TextStyle(color: scheme.onSurfaceVariant)),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Icon(Icons.place, size: 16, color: scheme.primary),
+                    Text(' $km km'),
+                  ]),
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(h['address'] as String, style: TextStyle(color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              children: caps
-                  .map((c) => Chip(
-                        label: Text(c.replaceAll('_', ' '), style: const TextStyle(fontSize: 11)),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.place, size: 16, color: scheme.primary),
-                Text(' $km km'),
-                const SizedBox(width: 12),
-                Icon(Icons.directions_car, size: 16, color: scheme.primary),
-                Text(' ~$mins min'),
-                const Spacer(),
-                FilledButton.tonalIcon(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => AmbulanceScreen(
-                      destinationHospitalId: h['id'] as String,
-                      destinationName: h['name'] as String,
-                    ),
-                  )),
-                  icon: const Icon(Icons.local_shipping, size: 18),
-                  label: const Text('Ambulance'),
-                ),
-              ],
+            FilledButton.tonalIcon(
+              onPressed: () => launchUrl(
+                Uri.parse(
+                    'https://www.google.com/maps/dir/?api=1&destination=${h['latitude']},${h['longitude']}'),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.directions, size: 18),
+              label: const Text('Directions'),
             ),
           ],
         ),
