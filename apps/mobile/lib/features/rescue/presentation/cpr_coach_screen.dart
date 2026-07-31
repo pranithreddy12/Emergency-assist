@@ -194,6 +194,21 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            // AED arrived — coach its use (top survival lever).
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => context.push('/coach/aed'),
+                  icon: const Icon(Icons.electric_bolt, color: Rescue.calm),
+                  label: const Text('The AED is here — use it',
+                      style: TextStyle(color: Rescue.calm, fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
           ],
         ),
       ),

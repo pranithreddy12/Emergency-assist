@@ -157,7 +157,53 @@ class Protocols {
     ],
   );
 
-  static const all = [cpr, choking, bleeding, recovery];
+  static const aedUse = RescueProtocol(
+    id: 'aed',
+    title: 'Using the AED',
+    kind: RescueKind.steps,
+    severity: 'CRITICAL',
+    intro: 'The defibrillator is here. Keep doing compressions while I set it up. Turn the AED on now.',
+    steps: [
+      RescueStep(
+        icon: Icons.power_settings_new,
+        title: 'Turn it on — follow its voice',
+        detail: 'Press the power button. From now on, do exactly what the AED tells you.',
+        voice: 'Turn the A E D on and follow its spoken instructions.',
+      ),
+      RescueStep(
+        icon: Icons.checkroom,
+        title: 'Bare the chest',
+        detail: 'Remove clothing. If the chest is wet, wipe it dry. Remove any medicine patches.',
+        voice: 'Bare the chest. Wipe it dry if wet, and remove any patches.',
+      ),
+      RescueStep(
+        icon: Icons.add_box,
+        title: 'Stick the pads on',
+        detail: 'Follow the pictures on the pads: one upper-right chest, one on the lower-left ribs.',
+        voice: 'Stick the pads on as shown: one upper right chest, one lower left side.',
+      ),
+      RescueStep(
+        icon: Icons.pan_tool,
+        title: 'Stand clear while it analyzes',
+        detail: 'Make sure nobody is touching the person while the AED checks the heart.',
+        voice: 'Stand clear. Make sure no one is touching them while it analyzes.',
+      ),
+      RescueStep(
+        icon: Icons.bolt,
+        title: 'If it says SHOCK — clear, then press it',
+        detail: 'Shout "clear", check nobody is touching, then press the flashing shock button.',
+        voice: 'If it says shock, shout clear, make sure no one is touching, then press the shock button.',
+      ),
+      RescueStep(
+        icon: Icons.favorite,
+        title: 'Resume CPR right away',
+        detail: 'Start compressions again immediately. The AED will re-check about every 2 minutes.',
+        voice: 'Start compressions again right away. The A E D will re-check every two minutes.',
+      ),
+    ],
+  );
+
+  static const all = [cpr, choking, bleeding, recovery, aedUse];
 
   static RescueProtocol byId(String id) =>
       all.firstWhere((p) => p.id == id, orElse: () => cpr);
