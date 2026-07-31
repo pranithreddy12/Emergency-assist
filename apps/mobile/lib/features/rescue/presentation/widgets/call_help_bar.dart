@@ -1,3 +1,4 @@
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,9 +6,30 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/location/location_service.dart';
 import '../../../../core/theme/rescue_theme.dart';
 
-/// The emergency number. Region-configurable via --dart-define; defaults to 112
-/// (works across the EU and most GSM networks worldwide).
-const emergencyNumber = String.fromEnvironment('EMERGENCY_NUMBER', defaultValue: '112');
+// Medical/all-services number for countries whose number differs from 112.
+// 112 is the GSM-universal fallback (EU + most of the world), so the default
+// below is safe when a country isn't listed; where a distinct ambulance number
+// exists (e.g. JP 119, BR 192) we use it. Verified high-confidence values only.
+const _byCountry = <String, String>{
+  'US': '911', 'CA': '911', 'MX': '911',
+  'GB': '999', 'IE': '999',
+  'AU': '000', 'NZ': '111',
+  'IN': '112', 'JP': '119', 'KR': '119', 'CN': '120', 'TW': '119',
+  'HK': '999', 'SG': '995', 'MY': '999', 'PH': '911',
+  'IL': '101', 'AE': '999', 'SA': '997',
+  'BR': '192', 'AR': '107', 'ZA': '112',
+};
+
+const _override = String.fromEnvironment('EMERGENCY_NUMBER');
+
+/// Pure country→number lookup (exposed for testing). Unknown/absent → 112.
+String numberForCountry(String? cc) => _byCountry[cc?.toUpperCase()] ?? '112';
+
+/// The emergency number to dial: an explicit build override wins; otherwise it's
+/// picked from the device's country; otherwise 112 (works almost everywhere).
+String get emergencyNumber => _override.isNotEmpty
+    ? _override
+    : numberForCountry(PlatformDispatcher.instance.locale.countryCode);
 
 Future<void> callEmergency() async {
   final uri = Uri(scheme: 'tel', path: emergencyNumber);
@@ -46,8 +68,8 @@ class CallHelpBar extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 icon: const Icon(Icons.call, size: 26),
-                label: const Text('Call $emergencyNumber',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                label: Text('Call $emergencyNumber',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               ),
             ),
           ],

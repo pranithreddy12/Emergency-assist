@@ -42,8 +42,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   TextButton.icon(
                     onPressed: callEmergency,
                     icon: const Icon(Icons.call, size: 18, color: Rescue.critical),
-                    label: const Text('Call $emergencyNumber',
-                        style: TextStyle(color: Rescue.critical, fontWeight: FontWeight.w700)),
+                    label: Text('Call $emergencyNumber',
+                        style: const TextStyle(color: Rescue.critical, fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
