@@ -42,3 +42,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/guidance.json  # offline first-aid content (snapshot of /guidance/bundle)

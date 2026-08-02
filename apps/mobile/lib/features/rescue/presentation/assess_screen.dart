@@ -13,10 +13,11 @@ class AssessScreen extends ConsumerStatefulWidget {
   ConsumerState<AssessScreen> createState() => _AssessScreenState();
 }
 
-enum _Q { awake, breathing, whatHappened }
+enum _Q { age, awake, breathing, whatHappened }
 
 class _AssessScreenState extends ConsumerState<AssessScreen> {
-  _Q _q = _Q.awake;
+  _Q _q = _Q.age;
+  bool _infant = false;
 
   @override
   void initState() {
@@ -27,6 +28,8 @@ class _AssessScreenState extends ConsumerState<AssessScreen> {
   void _speak() {
     final tts = ref.read(ttsProvider);
     switch (_q) {
+      case _Q.age:
+        tts.say('Is this a baby, under one year old?');
       case _Q.awake:
         tts.say('Are they awake and responding to you?');
       case _Q.breathing:
@@ -49,6 +52,21 @@ class _AssessScreenState extends ConsumerState<AssessScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: switch (_q) {
+            _Q.age => _yesNo(
+                context,
+                'Is this a baby?',
+                'Under 1 year old. First-aid technique is different for infants.',
+                yesLabel: 'Baby (under 1)',
+                noLabel: 'Child or adult',
+                onYes: () {
+                  _infant = true;
+                  _go(_Q.awake);
+                },
+                onNo: () {
+                  _infant = false;
+                  _go(_Q.awake);
+                },
+              ),
             _Q.awake => _yesNo(
                 context,
                 'Are they awake?',
@@ -63,7 +81,7 @@ class _AssessScreenState extends ConsumerState<AssessScreen> {
                 yesLabel: 'Yes, breathing',
                 noLabel: 'No / not sure',
                 onYes: () => context.push('/coach/recovery'),
-                onNo: () => context.push('/coach/cpr'),
+                onNo: () => context.push(_infant ? '/coach/infant-cpr' : '/coach/cpr'),
                 critical: true,
               ),
             _Q.whatHappened => _whatHappened(context),
@@ -103,7 +121,8 @@ class _AssessScreenState extends ConsumerState<AssessScreen> {
 
   Widget _whatHappened(BuildContext context) {
     final items = [
-      (Icons.air, 'Choking', "Can't breathe, cough or speak", () => context.push('/coach/choking')),
+      (Icons.air, 'Choking', "Can't breathe, cough or speak",
+          () => context.push(_infant ? '/coach/infant-choking' : '/coach/choking')),
       (Icons.bloodtype, 'Severe bleeding', 'Heavy or spurting blood', () => context.push('/coach/bleeding')),
       (Icons.psychology, 'Something else', 'Describe it — get AI guidance', () => context.push('/triage')),
     ];

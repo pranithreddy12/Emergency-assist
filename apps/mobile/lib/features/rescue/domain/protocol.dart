@@ -29,6 +29,7 @@ class RescueProtocol {
   final String intro; // spoken on entry
   final List<RescueStep> steps;
   final String severity; // for the incident we log in the background
+  final String cprSubtitle; // technique line shown on the metronome coach
 
   const RescueProtocol({
     required this.id,
@@ -37,6 +38,7 @@ class RescueProtocol {
     required this.intro,
     required this.steps,
     required this.severity,
+    this.cprSubtitle = 'center of the chest • 110 / min',
   });
 }
 
@@ -203,7 +205,57 @@ class Protocols {
     ],
   );
 
-  static const all = [cpr, choking, bleeding, recovery, aedUse];
+  // ── Infant variants (under 1 year) — technique differs from adults ──
+
+  static const infantCpr = RescueProtocol(
+    id: 'infant-cpr',
+    title: 'Infant CPR',
+    kind: RescueKind.cpr,
+    severity: 'CRITICAL',
+    cprSubtitle: '2 fingers, just below the nipple line • gentle, ~4 cm • 110 / min',
+    intro:
+        'Infant CPR. Use two fingers in the center of the chest, just below the nipple line. '
+        'Press about one and a half centimeters, gently but fast. Follow my beat.',
+    steps: [],
+  );
+
+  static const infantChoking = RescueProtocol(
+    id: 'infant-choking',
+    title: 'Infant choking',
+    kind: RescueKind.steps,
+    severity: 'CRITICAL',
+    intro:
+        'The baby is choking. Never do abdominal thrusts on a baby. Sit down and support them '
+        'along your forearm. I will guide each step.',
+    steps: [
+      RescueStep(
+        icon: Icons.child_care,
+        title: 'Face down — 5 back blows',
+        detail: 'Lay them face-down along your forearm, head low, supporting the jaw. Give 5 blows between the shoulder blades with the heel of your hand.',
+        voice: 'Lay the baby face down along your forearm, head lower than the body. Give five back blows between the shoulder blades.',
+      ),
+      RescueStep(
+        icon: Icons.flip,
+        title: 'Turn over — 5 chest thrusts',
+        detail: 'Turn them face-up. Two fingers on the center of the chest, just below the nipple line. Give 5 sharp thrusts. NO abdominal thrusts.',
+        voice: 'Turn the baby face up. With two fingers on the center of the chest, give five sharp chest thrusts. Never push on the belly.',
+      ),
+      RescueStep(
+        icon: Icons.repeat,
+        title: 'Repeat until it clears',
+        detail: 'Alternate 5 back blows and 5 chest thrusts. Check the mouth between rounds — only remove something you can clearly see.',
+        voice: 'Keep alternating five back blows and five chest thrusts until the object comes out.',
+      ),
+      RescueStep(
+        icon: Icons.favorite,
+        title: 'If they go limp — start infant CPR',
+        detail: 'If the baby becomes unresponsive, start infant CPR: two fingers, center of the chest, hard and fast.',
+        voice: 'If the baby stops responding, start infant C P R with two fingers on the center of the chest.',
+      ),
+    ],
+  );
+
+  static const all = [cpr, choking, bleeding, recovery, aedUse, infantCpr, infantChoking];
 
   static RescueProtocol byId(String id) =>
       all.firstWhere((p) => p.id == id, orElse: () => cpr);

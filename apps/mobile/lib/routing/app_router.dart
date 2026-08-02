@@ -26,6 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Coaches
       GoRoute(path: '/coach/cpr', builder: (_, __) => const CprCoachScreen()),
+      GoRoute(path: '/coach/infant-cpr', builder: (_, __) => const CprCoachScreen(protocolId: 'infant-cpr')),
       GoRoute(
         path: '/coach/:id',
         builder: (_, state) => StepCoachScreen(protocolId: state.pathParameters['id']!),

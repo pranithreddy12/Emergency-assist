@@ -15,13 +15,15 @@ import 'widgets/aed_hint.dart';
 /// the correct 110 bpm cadence with an audible click and a spoken intro, a live
 /// compression count, and an elapsed timer.
 class CprCoachScreen extends ConsumerStatefulWidget {
-  const CprCoachScreen({super.key});
+  final String protocolId; // 'cpr' (adult) or 'infant-cpr'
+  const CprCoachScreen({super.key, this.protocolId = 'cpr'});
   @override
   ConsumerState<CprCoachScreen> createState() => _CprCoachScreenState();
 }
 
 class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
     with SingleTickerProviderStateMixin {
+  late final RescueProtocol _p = Protocols.byId(widget.protocolId);
   final _metro = Metronome();
   late final AnimationController _pump =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
@@ -30,6 +32,7 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
   Duration _elapsed = Duration.zero;
   Timer? _clock;
   bool _alerted = false;
+  bool _sosFailed = false;
 
   @override
   void initState() {
@@ -41,7 +44,7 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
   Future<void> _begin() async {
     WakelockPlus.enable(); // keep the screen on through the whole rescue
     final tts = ref.read(ttsProvider);
-    tts.say(Protocols.cpr.intro);
+    tts.say(_p.intro);
     // Evidence-backed: getting an AED to the scene raises survival sharply.
     tts.cue('If anyone else is there, send them to find the nearest defibrillator, an A E D, right now.');
     await _metro.start();
@@ -55,8 +58,9 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
       }
     });
     // Log the SOS in the background — coaching never waits on it.
-    final id = await ref.read(rescueServiceProvider).raise(Protocols.cpr);
-    if (mounted && id != null) setState(() => _alerted = true);
+    final id = await ref.read(rescueServiceProvider).raise(_p);
+    if (mounted) setState(() => _alerted = id != null); // false when offline
+    if (mounted && id == null) _sosFailed = true;
   }
 
   void _onBeat() {
@@ -102,6 +106,8 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
                   const Spacer(),
                   if (_alerted)
                     const _Chip(icon: Icons.check_circle, color: Rescue.go, label: 'Help alerted')
+                  else if (_sosFailed)
+                    const _Chip(icon: Icons.wifi_off, color: Rescue.critical, label: 'Offline — call directly')
                   else
                     const _Chip(icon: Icons.sync, color: Rescue.warn, label: 'Alerting help…'),
                 ],
@@ -111,8 +117,8 @@ class _CprCoachScreenState extends ConsumerState<CprCoachScreen>
             const SizedBox(height: 6),
             const Text('PUSH HARD & FAST',
                 style: TextStyle(color: Rescue.text, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
-            const Text('center of the chest • 110 / min',
-                style: TextStyle(color: Rescue.muted, fontSize: 14)),
+            Text(_p.cprSubtitle,
+                style: const TextStyle(color: Rescue.muted, fontSize: 14)),
 
             const SizedBox(height: 12),
             const AedHint(),
