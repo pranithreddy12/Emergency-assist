@@ -25,6 +25,8 @@ import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AiModule } from './ai/ai.module';
 import { AedModule } from './aed/aed.module';
+import { RecognizerModule } from './recognizer/recognizer.module';
+import { EmergencyNumberModule } from './emergency-number/emergency-number.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -53,6 +55,8 @@ import { HealthController } from './health.controller';
     DocumentsModule,
     AiModule,
     AedModule,
+    EmergencyNumberModule,
+    RecognizerModule,
   ],
   controllers: [HealthController],
   providers: [

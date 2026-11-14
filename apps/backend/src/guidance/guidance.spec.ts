@@ -5,9 +5,9 @@ import { containsUnsafeMedicalClaim } from '../triage/triage.guardrails';
 describe('GuidanceService', () => {
   const service = new GuidanceService();
 
-  it('lists all 16 required first-aid topics', () => {
+  it('lists all 17 required first-aid topics', () => {
     const res = service.list();
-    expect(res.topics.length).toBe(16);
+    expect(res.topics.length).toBe(17);
   });
 
   it('filters by category', () => {
@@ -31,7 +31,7 @@ describe('GuidanceService', () => {
     const a = service.bundle();
     const b = service.bundle();
     expect(a.checksum).toBe(b.checksum);
-    expect(a.topics.length).toBe(16);
+    expect(a.topics.length).toBe(17);
   });
 
   // SAFETY: no authored guidance may contain prescription or diagnosis language.

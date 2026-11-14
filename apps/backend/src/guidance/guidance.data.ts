@@ -14,7 +14,7 @@ export interface GuidanceStep {
 export interface GuidanceTopic {
   slug: string;
   title: string;
-  category: 'cardiac' | 'airway' | 'trauma' | 'environmental' | 'neuro' | 'toxic' | 'obstetric' | 'pediatric';
+  category: 'cardiac' | 'airway' | 'trauma' | 'environmental' | 'neuro' | 'toxic' | 'obstetric' | 'pediatric' | 'allergic';
   icon: string; // material icon name for the client
   summary: string;
   steps: GuidanceStep[];
@@ -361,6 +361,28 @@ export const GUIDANCE_TOPICS: GuidanceTopic[] = [
       'Heavy bleeding, severe abdominal pain, severe headache with vision changes, seizures, or reduced baby movement.',
     ],
     sources: [WHO],
+  },
+  {
+    slug: 'anaphylaxis',
+    title: 'Severe Allergic Reaction (Anaphylaxis)',
+    category: 'allergic',
+    icon: 'allergies',
+    summary: 'A life-threatening allergic reaction with trouble breathing, swelling, or faintness.',
+    steps: steps(
+      'Call emergency services immediately — a severe allergic reaction is life-threatening.',
+      'If the person has an adrenaline auto-injector (such as an EpiPen), help them use it right away against the outer thigh.',
+      'Help them sit up if breathing is hard, or lie down with legs raised if they feel faint or dizzy.',
+      'If symptoms do not improve after a few minutes and a second auto-injector is available, it can be used as directed on the device.',
+      'If the person becomes unresponsive and is not breathing normally, begin CPR.',
+    ),
+    donts: [
+      'Do not have the person stand up or walk around — this can make the reaction worse.',
+      'Do not wait to see if the symptoms pass before calling for help.',
+    ],
+    callEmergencyIf: [
+      'Trouble breathing, swelling of the face, lips, or throat, widespread hives, or faintness after a known or suspected trigger.',
+    ],
+    sources: [AHA, ARC],
   },
 ];
 
